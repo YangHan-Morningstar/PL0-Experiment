@@ -66,7 +66,7 @@ char ch;            /* 获取字符的缓冲区，getch 使用 */
 enum symbol sym;    /* 当前的符号(可能是保留字、可能是标识符) */
 char id[al+1];      /* 当前ident, 多出的一个字节用于存放0 */
 int num;            /* 当前number */
-int cc, ll;          /* getch使用的计数器，cc表示当前字符(ch)的位置， ll为line中换行符的位置*/
+int currentCharIndex, newLineIndex;          /* getch使用的计数器，cc表示当前字符(ch)的位置， ll为line中换行符的位置*/
 int virtualMachineCodePointer;             /* 虚拟机代码指针, 取值范围[0, maxVirtualMachineCodeNum-1]*/
 char line[81];      /* 读取行缓冲区 */
 char a[al+1];       /* 临时符号, 多出的一个字节用于存放0 */

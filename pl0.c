@@ -30,7 +30,8 @@ int main()
     // printf("Input pl/0 file?   ");
     // scanf("%s", fname);     /* 输入文件名 */
 
-    fin = fopen("C:\\Users\\Tony\\CLionProjects\\Examples\\column.pl0", "r");
+    // fin = fopen("C:\\Users\\Tony\\CLionProjects\\Examples\\column.pl0", "r");
+    fin = fopen("/Users/tony/实验室/ClionProjects/PL0-Experiment/Examples/column.pl0", "r");
 
     if (fin)
     {
@@ -49,7 +50,7 @@ int main()
         init();     /* 初始化 */
 
         err = 0;
-        cc = virtualMachineCodePointer = ll = 0;
+        currentCharIndex = virtualMachineCodePointer = newLineIndex = 0;
         ch = ' ';
 
         if(-1 != getsym())
@@ -237,7 +238,7 @@ void error(int n)
     char space[81];
     memset(space,32,81);
 
-    space[cc-1]=0; //出错时当前符号已经读完，所以cc-1
+    space[currentCharIndex - 1]=0; //出错时当前符号已经读完，所以cc-1
 
     printf("****%s!%d\n", space, n);
     fprintf(fa1,"****%s!%d\n", space, n);
@@ -254,15 +255,15 @@ void error(int n)
 */
 int getch()
 {
-    if (cc == ll)
+    if (currentCharIndex == newLineIndex)
     {
         if (feof(fin)) // 检测是否遇到文件结束符
         {
             printf("program incomplete");
             return -1;
         }
-        ll=0;
-        cc=0;
+        newLineIndex=0;
+        currentCharIndex=0;
         printf("%d ", virtualMachineCodePointer);
         fprintf(fa1, "%d ", virtualMachineCodePointer);
         ch = ' ';
@@ -272,20 +273,20 @@ int getch()
             //richard
             if (EOF == fscanf(fin,"%c", &ch))
             {
-                line[ll] = 0;
+                line[newLineIndex] = 0;
                 break;
             }
             //end richard
             printf("%c", ch);
             fprintf(fa1, "%c", ch);
-            line[ll] = ch;
-            ll++;
+            line[newLineIndex] = ch;
+            newLineIndex++;
         }
         printf("\n");
         fprintf(fa1, "\n");
     }
-    ch = line[cc];
-    cc++;
+    ch = line[currentCharIndex];
+    currentCharIndex++;
     return 0;
 }
 
@@ -403,14 +404,26 @@ int getsym()
                     }
                     else
                     {
-                        sym = ssym[ch];     /* 当符号不满足上述条件时，全部按照单字符符号处理 */
-                        //getchdo;
-                        //richard
-                        if (sym != period)
-                        {
+
+                        if(ch == '{') {
+                            do {
+                                if(currentCharIndex == newLineIndex && ch != '}') {
+                                    error(31); //没有匹配的右括号
+                                }
+                                getchdo;
+                            } while(ch != '}');
                             getchdo;
+                            getsymdo; //获取下一个符号，下一个符号为真实符号，当前'}'符号没有意义
+                        } else {
+                            sym = ssym[ch];     /* 当符号不满足上述条件时，全部按照单字符符号处理 */
+                            //getchdo;
+                            //richard
+                            if (sym != period)
+                            {
+                                getchdo;
+                            }
+                            //end richard
                         }
-                        //end richard
                     }
                 }
             }

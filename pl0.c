@@ -30,8 +30,8 @@ int main()
     // printf("Input pl/0 file?   ");
     // scanf("%s", fname);     /* 输入文件名 */
 
-    // fin = fopen("C:\\Users\\Tony\\CLionProjects\\Examples\\column.pl0", "r");
-    fin = fopen("/Users/tony/实验室/ClionProjects/PL0-Experiment/Examples/column.pl0", "r");
+    fin = fopen("C:\\Users\\Tony\\CLionProjects\\CompilationPrinciple\\Examples\\column.pl0", "r");
+    // fin = fopen("/Users/tony/实验室/ClionProjects/PL0-Experiment/Examples/column.pl0", "r");
 
     if (fin)
     {
@@ -190,6 +190,7 @@ void init()
     facbegsys[ident] = true;
     facbegsys[number] = true;
     facbegsys[lparen] = true;
+
 }
 
 /*
@@ -262,6 +263,7 @@ int getch()
             printf("program incomplete");
             return -1;
         }
+
         newLineIndex=0;
         currentCharIndex=0;
         printf("%d ", virtualMachineCodePointer);
@@ -406,14 +408,18 @@ int getsym()
                     {
 
                         if(ch == '{') {
-                            do {
-                                if(currentCharIndex == newLineIndex && ch != '}') {
-                                    error(31); //没有匹配的右括号
-                                }
+//                            do {
+//                                if(currentCharIndex == newLineIndex && ch != '}') {
+//                                    error(31); //没有匹配的右括号
+//                                }
+//                                getchdo;
+//                            } while(ch != '}');
+//                            getchdo;
+//                            getsymdo; //获取下一个符号，下一个符号为真实符号，当前'}'符号没有意义
+                            while(ch != '}') {
                                 getchdo;
-                            } while(ch != '}');
+                            }
                             getchdo;
-                            getsymdo; //获取下一个符号，下一个符号为真实符号，当前'}'符号没有意义
                         } else {
                             sym = ssym[ch];     /* 当符号不满足上述条件时，全部按照单字符符号处理 */
                             //getchdo;

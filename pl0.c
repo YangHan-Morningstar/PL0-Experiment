@@ -30,8 +30,8 @@ int main()
     // printf("Input pl/0 file?   ");
     // scanf("%s", fname);     /* 输入文件名 */
 
-    fin = fopen("C:\\Users\\Tony\\CLionProjects\\CompilationPrinciple\\Examples\\column.pl0", "r");
-    // fin = fopen("/Users/tony/实验室/ClionProjects/PL0-Experiment/Examples/column.pl0", "r");
+    // fin = fopen("C:\\Users\\Tony\\CLionProjects\\CompilationPrinciple\\Examples\\column.pl0", "r");
+    fin = fopen("/Users/tony/实验室/ClionProjects/PL0-Experiment/Examples/function.pl0", "r");
 
     if (fin)
     {
@@ -130,30 +130,32 @@ void init()
     strcpy(&(word[1][0]), "call");
     strcpy(&(word[2][0]), "const");
     strcpy(&(word[3][0]), "do");
-    strcpy(&(word[4][0]), "end");
-    strcpy(&(word[5][0]), "if");
-    strcpy(&(word[6][0]), "odd");
-    strcpy(&(word[7][0]), "procedure");
-    strcpy(&(word[8][0]), "read");
-    strcpy(&(word[9][0]), "then");
-    strcpy(&(word[10][0]), "var");
-    strcpy(&(word[11][0]), "while");
-    strcpy(&(word[12][0]), "write");
+    strcpy(&(word[4][0]), "else");
+    strcpy(&(word[5][0]), "end");
+    strcpy(&(word[6][0]), "if");
+    strcpy(&(word[7][0]), "odd");
+    strcpy(&(word[8][0]), "procedure");
+    strcpy(&(word[9][0]), "read");
+    strcpy(&(word[10][0]), "then");
+    strcpy(&(word[11][0]), "var");
+    strcpy(&(word[12][0]), "while");
+    strcpy(&(word[13][0]), "write");
 
     /* 设置保留字符号 */
     wsym[0] = beginsym;
     wsym[1] = callsym;
     wsym[2] = constsym;
     wsym[3] = dosym;
-    wsym[4] = endsym;
-    wsym[5] = ifsym;
-    wsym[6] = oddsym;
-    wsym[7] = procsym;
-    wsym[8] = readsym;
-    wsym[9] = thensym;
-    wsym[10] = varsym;
-    wsym[11] = whilesym;
-    wsym[12] = writesym;
+    wsym[4] = elsesym;
+    wsym[5] = endsym;
+    wsym[6] = ifsym;
+    wsym[7] = oddsym;
+    wsym[8] = procsym;
+    wsym[9] = readsym;
+    wsym[10] = thensym;
+    wsym[11] = varsym;
+    wsym[12] = whilesym;
+    wsym[13] = writesym;
 
     /* 设置指令名称 */
     strcpy(&(mnemonic[lit][0]), "lit");
@@ -524,7 +526,7 @@ int block(int eachProgramLevel, int nameTableTailPointer, bool* fsys)
             /* the original do...while(sym == ident) is problematic, thanks to calculous */
             /* do { */
             constdeclarationdo(&nameTableTailPointer, eachProgramLevel, &nameRelativeAddress);  /* dx的值会被constdeclaration改变，使用指针 */
-            while (sym == comma)
+            while (sym == comma) // 逗号，表示不止声明一个常量，需要循环调用getsymdo函数继续寻找常量
             {
                 getsymdo;
                 constdeclarationdo(&nameTableTailPointer, eachProgramLevel, &nameRelativeAddress);
@@ -547,7 +549,7 @@ int block(int eachProgramLevel, int nameTableTailPointer, bool* fsys)
             /* the original do...while(sym == ident) is problematic, thanks to calculous */
             /* do {  */
             vardeclarationdo(&nameTableTailPointer, eachProgramLevel, &nameRelativeAddress);
-            while (sym == comma)
+            while (sym == comma) // 逗号，表示不止声明一个变量，需要循环调用getsymdo函数继续寻找变量
             {
                 getsymdo;
                 vardeclarationdo(&nameTableTailPointer, eachProgramLevel, &nameRelativeAddress);
@@ -791,7 +793,7 @@ void listcode(int cx0)
 */
 int statement(bool* fsys, int* ptx, int lev)
 {
-    int i, cx1, cx2;
+    int i, virtualMachineCodePointer1, virtualMachineCodePointer2, virtualMachineCodePointer3;
     bool nxtlev[symnum];
 
     if (sym == ident)   /* 准备按照赋值语句处理 */
@@ -954,10 +956,29 @@ int statement(bool* fsys, int* ptx, int lev)
                         {
                             error(16);  /* 缺少then */
                         }
-                        cx1 = virtualMachineCodePointer;   /* 保存当前指令地址 */
+                        virtualMachineCodePointer1 = virtualMachineCodePointer;   /* 保存当前指令地址 */
                         gendo(jpc, 0, 0);   /* 生成条件跳转指令，跳转地址未知，暂时写0 */
                         statementdo(fsys, ptx, lev);    /* 处理then后的语句 */
-                        virtualCode[cx1].a = virtualMachineCodePointer;   /* 经statement处理后，cx为then后语句执行完的位置，它正是前面未定的跳转地址 */
+
+                        if(sym == semicolon) {
+                            getsymdo;
+                            if(sym == elsesym) {
+                                getsymdo;
+                                virtualMachineCodePointer2 = virtualMachineCodePointer;
+                                /*cx为当前的指令地址，cx+1即为then语句执行后的else语句的位置，回填地址*/
+                                virtualCode[virtualMachineCodePointer1].a = virtualMachineCodePointer + 1;
+                                gendo(jmp, 0, 0);
+                                statementdo(fsys, ptx, lev);
+                                /*经statement处理后，cx为else后语句执行
+                                完的位置，它正是前面未定的跳转地址，回填地址*/
+                                virtualCode[virtualMachineCodePointer2].a = virtualMachineCodePointer;
+                            } else {
+                                /*经statement处理后，cx为then后语句执行完的位置，它正是前面未定的跳转地址*/
+                                virtualCode[virtualMachineCodePointer1].a = virtualMachineCodePointer;
+                            }
+                        } else {
+                            error(5);
+                        }
                     }
                     else
                     {
@@ -995,12 +1016,12 @@ int statement(bool* fsys, int* ptx, int lev)
                         {
                             if (sym == whilesym)    /* 准备按照while语句处理 */
                             {
-                                cx1 = virtualMachineCodePointer;   /* 保存判断条件操作的位置 */
+                                virtualMachineCodePointer1 = virtualMachineCodePointer;   /* 保存判断条件操作的位置 */
                                 getsymdo;
                                 memcpy(nxtlev, fsys, sizeof(bool)*symnum);
                                 nxtlev[dosym] = true;   /* 后跟符号为do */
                                 conditiondo(nxtlev, ptx, lev);  /* 调用条件处理 */
-                                cx2 = virtualMachineCodePointer;   /* 保存循环体的结束的下一个位置 */
+                                virtualMachineCodePointer2 = virtualMachineCodePointer;   /* 保存循环体的结束的下一个位置 */
                                 gendo(jpc, 0, 0);   /* 生成条件跳转，但跳出循环的地址未知 */
                                 if (sym == dosym)
                                 {
@@ -1011,8 +1032,8 @@ int statement(bool* fsys, int* ptx, int lev)
                                     error(18);  /* 缺少do */
                                 }
                                 statementdo(fsys, ptx, lev);    /* 循环体 */
-                                gendo(jmp, 0, cx1); /* 回头重新判断条件 */
-                                virtualCode[cx2].a = virtualMachineCodePointer;   /* 反填跳出循环的地址，与if类似 */
+                                gendo(jmp, 0, virtualMachineCodePointer1); /* 回头重新判断条件 */
+                                virtualCode[virtualMachineCodePointer2].a = virtualMachineCodePointer;   /* 反填跳出循环的地址，与if类似 */
                             }
                             else
                             {

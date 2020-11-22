@@ -12,7 +12,7 @@ typedef enum {
 } bool;
 
 
-#define norw 13     /* 关键字个数 */
+#define norw 14     /* 关键字个数 */
 #define nameTableCapacity 100   /* 名字表容量 */
 #define nmax 14     /* number的最大位数 */
 #define al 10       /* 符号的最大长度 */
@@ -28,9 +28,9 @@ enum symbol {
     rparen,      comma,     semicolon,  period,    becomes,
     beginsym,    endsym,    ifsym,      thensym,   whilesym,
     writesym,    readsym,   dosym,      callsym,   constsym,
-    varsym,      procsym,
+    varsym,      procsym,   elsesym
 };
-#define symnum 32
+#define symnum 33
 
 /* 名字表中的类型 */
 enum object {

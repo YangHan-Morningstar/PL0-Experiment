@@ -30,8 +30,8 @@ int main()
     // printf("Input pl/0 file?   ");
     // scanf("%s", fname);     /* 输入文件名 */
 
-    // fin = fopen("C:\\Users\\Tony\\CLionProjects\\CompilationPrinciple\\Examples\\column.pl0", "r");
-    fin = fopen("/Users/tony/实验室/ClionProjects/PL0-Experiment/Examples/function.pl0", "r");
+    fin = fopen("C:\\Users\\Tony\\CLionProjects\\CompilationPrinciple\\Examples\\TempTest2.pl0", "r");
+    // fin = fopen("/Users/tony/实验室/ClionProjects/PL0-Experiment/Examples/function.pl0", "r");
 
     if (fin)
     {
@@ -166,6 +166,8 @@ void init()
     strcpy(&(mnemonic[inte][0]), "int");
     strcpy(&(mnemonic[jmp][0]), "jmp");
     strcpy(&(mnemonic[jpc][0]), "jpc");
+    strcpy(&(mnemonic[lda][0]), "lda");
+    strcpy(&(mnemonic[sta][0]), "sta");
 
     /* 设置符号集 */
     for (i=0; i<symnum; i++)
@@ -373,7 +375,8 @@ int getsym()
                 }
                 else
                 {
-                    sym = nul;  /* 不能识别的符号 */
+                    sym = colon; //加入数组后可识别成冒号
+                    // sym = nul;  /* 不能识别的符号 */
                 }
             }
             else
@@ -495,7 +498,7 @@ int test(bool* s1, bool* s2, int n)
 * nameTableTailPointer:     名字表当前尾指针
 * fsys:   当前模块后跟符号集?
 */
-int block(int eachProgramLevel, int nameTableTailPointer, bool* fsys)
+int block(int eachProgramLevel, int nameTableTailPointer, bool* fsys)// 分程序处理过程
 {
     int i;
 
@@ -546,8 +549,6 @@ int block(int eachProgramLevel, int nameTableTailPointer, bool* fsys)
         {
             getsymdo;
 
-            /* the original do...while(sym == ident) is problematic, thanks to calculous */
-            /* do {  */
             vardeclarationdo(&nameTableTailPointer, eachProgramLevel, &nameRelativeAddress);
             while (sym == comma) // 逗号，表示不止声明一个变量，需要循环调用getsymdo函数继续寻找变量
             {
@@ -648,6 +649,11 @@ int block(int eachProgramLevel, int nameTableTailPointer, bool* fsys)
                     fprintf(fas, "    %d proc  %s ", i, nameTable[i].name);
                     fprintf(fas, "eachProgramLevel=%d addr=%d size=%d\n", nameTable[i].level, nameTable[i].adr, nameTable[i].size);
                     break;
+                case arrays:
+                    printf("    %d array %s ", i, nameTable[i].name);
+                    printf("eachProgramLevel=%d addr=%d size=%d\n", nameTable[i].level, nameTable[i].adr, nameTable[i].size);
+                    fprintf(fas, "    %d array  %s ", i, nameTable[i].name);
+                    fprintf(fas, "eachProgramLevel=%d addr=%d size=%d\n", nameTable[i].level, nameTable[i].adr, nameTable[i].size);
             }
         }
         printf("\n");
@@ -695,6 +701,13 @@ void enter(enum object k, int* ptx, int lev, int* pdx)
             break;
         case procedur:  /*　过程名字　*/
             nameTable[(*ptx)].level = lev;
+            break;
+        case arrays: // 数组名,进行记录下界等
+            nameTable[(*ptx)].level = lev;
+            nameTable[(*ptx)].adr = (*pdx);
+            nameTable[(*ptx)].data = g_arrBase;
+            nameTable[(*ptx)].size = g_arrSize;
+            *pdx = (*pdx) + g_arrSize;
             break;
     }
 }
@@ -762,8 +775,16 @@ int vardeclaration(int* ptx,int lev,int* pdx)
 {
     if (sym == ident)
     {
-        enter(variable, ptx, lev, pdx); // 填写名字表
-        getsymdo;
+        int isArray = arraydeclaration(ptx, lev, pdx);
+        if(isArray == 1) {
+            enter(arrays, ptx, lev, pdx);
+            getsymdo;
+        } else if(isArray == 0) {
+            enter(variable, ptx, lev, pdx);
+        } else {
+            return -1;
+        }
+        // getsymdo;
     }
     else
     {
@@ -805,13 +826,21 @@ int statement(bool* fsys, int* ptx, int lev)
         }
         else
         {
-            if(nameTable[i].kind != variable)
+            if(nameTable[i].kind != variable && nameTable[i].kind != arrays)
             {
                 error(12);  /* 赋值语句格式错误 */
                 i = 0;
             }
             else
             {
+                enum fct fct1;
+                if(nameTable[i].kind == arrays) {
+                    arraycoefdo(fsys, ptx, lev);
+                    fct1 = sta;  /* 数组保存,要多读一个栈*/
+                } else {
+                    fct1 = sto;
+                }
+
                 getsymdo;
                 if(sym == becomes)
                 {
@@ -826,7 +855,7 @@ int statement(bool* fsys, int* ptx, int lev)
                 if(i != 0)
                 {
                     /* expression将执行一系列指令，但最终结果将会保存在栈顶，执行sto命令完成赋值 */
-                    gendo(sto, lev - nameTable[i].level, nameTable[i].adr);
+                    gendo(fct1, lev - nameTable[i].level, nameTable[i].adr);
                 }
             }
         }//if (i == 0)
@@ -1157,6 +1186,10 @@ int factor(bool* fsys, int* ptx, int lev)
                     case procedur:  /* 名字为过程 */
                         error(21);  /* 不能为过程 */
                         break;
+                    case arrays:
+                        arraycoefdo(fsys,ptx,lev);
+                        gendo(lda,lev - nameTable[i].level,nameTable[i].adr);
+                        break;
                 }
             }
             getsymdo;
@@ -1255,6 +1288,106 @@ int condition(bool* fsys, int* ptx, int lev)
         }
     }
     return 0;
+}
+
+int arraydeclaration(int* ptx, int lev, int* pdx)
+{
+    /* 暂存数组标识名,避免被覆盖 */
+    char arrayId[al];
+    int constId;                  /* 常量标识符的位置 */
+    int arrBase = -1, arrTop = -1;  /* 数组下界、上界的数值 */
+    getsymdo;
+    if(sym == lparen) {  /* 标识符之后是'(',则识别为数组 */
+        strcpy(arrayId, id);
+        /* 检查下界 */
+        getsymdo;
+        if(sym == ident) {
+            constId = position(id, (*ptx));
+            if(constId != 0) {
+                if(nameTable[constId].kind == constant) {
+                    arrBase = nameTable[constId].val;
+                }
+            }
+        } else {
+            if(sym == number) {
+                arrBase = num;
+            }
+        }
+        if(arrBase == -1) {
+            error(50);
+            return -1;
+        }
+        /* 检查冒号 */
+        getsymdo;
+        if(sym != colon) {
+            error(50);
+            return -1;
+        }
+        /* 检查上界 */
+        getsymdo;
+        if(sym == ident) {
+            constId = position(id, (*ptx));
+            if(constId != 0) {
+                if (nameTable[constId].kind == constant) {
+                    arrTop = nameTable[constId].val;
+                }
+            }
+        } else {
+            if(sym == number) {
+                arrTop = num;
+            }
+        }
+        if(arrTop == -1) {
+            error(50);
+            return -1;
+        }
+
+        /* 检查')' */
+        getsymdo;
+        if(sym != rparen) {
+            error(50);
+            return -1;
+        }
+
+        /* 上下界是否符合条件检查 */
+
+        g_arrSize = arrTop - arrBase + 1;
+        g_arrBase = arrBase;
+
+        if(g_arrSize <= 0) {
+            error(50);
+            return -1;
+        }
+
+        /* 恢复数组的标识符 */
+        strcpy(id, arrayId);
+        return 1;
+    }
+    return 0;
+}
+
+// 计算下标
+int arraycoef(bool *fsys, int *ptx, int lev)
+{
+    bool nxtlev[symnum];
+    int i = position(id,*ptx);
+    getsymdo;
+    if (sym == lparen) { /* 索引是括号内的表达式 */
+        getsymdo;
+        memcpy(nxtlev, fsys, sizeof(bool)*symnum);
+        nxtlev[rparen] = true;
+        expressiondo(nxtlev, ptx, lev);
+        if (sym == rparen) {
+            gendo(lit, 0, nameTable[i].data);
+            gendo(opr, 0, 3);   /* 系数修正,减去下界的值 */
+            return 0;
+        } else {
+            error(22);  /* 缺少右括号 */
+        }
+    } else {
+        error(51);  /* 数组访问错误 */
+    }
+    return -1;
 }
 
 /*
@@ -1360,6 +1493,15 @@ void interpret()
                 t--;
                 s[base(i.l, s, b) + i.a] = s[t];
                 break;
+
+            case lda: /* 数组元素访问,当前栈顶为元素索引,执行后,栈顶变成元素的值*/
+                s[t-1] = s[base(i.l, s, b) + i.a + s[t-1]];
+                break;
+            case sta: /* 栈顶的值存到数组中,索引为次栈顶*/
+                t -= 2;
+                s[base(i.l, s, b) + i.a + s[t]] = s[t+1];
+                break;
+
             case cal:   /* 调用子过程 */
                 s[t] = base(i.l, s, b); /* 将父过程基地址入栈 */
                 s[t+1] = b; /* 将本过程基地址入栈，此两项用于base函数 */

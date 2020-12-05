@@ -28,25 +28,26 @@ enum symbol {
     rparen,      comma,     semicolon,  period,    becomes,
     beginsym,    endsym,    ifsym,      thensym,   whilesym,
     writesym,    readsym,   dosym,      callsym,   constsym,
-    varsym,      procsym,   elsesym
+    varsym,      procsym,   elsesym,    colon
 };
-#define symnum 33
+#define symnum 34
 
 /* 名字表中的类型 */
 enum object {
     constant,
     variable,
     procedur,
-    array       //add
+    arrays       //add
 };
 
 /* 虚拟机代码 */
 enum fct {
     lit,     opr,     lod,
     sto,     cal,     inte,
-    jmp,     jpc,
+    jmp,     jpc,     lda,
+    sta
 };
-#define fctnum 8
+#define fctnum 10
 
 /* 虚拟机代码结构 */
 struct instruction
@@ -78,6 +79,8 @@ char mnemonic[fctnum][5];   /* 虚拟机代码指令名称 */
 bool declbegsys[symnum];    /* 表示声明开始的符号集合 */
 bool statbegsys[symnum];    /* 表示语句开始的符号集合 */
 bool facbegsys[symnum];     /* 表示因子开始的符号集合 */
+static int g_arrBase = 0;
+static int g_arrSize = 0;
 
 /* 名字表结构 */
 struct tablestruct
@@ -88,6 +91,7 @@ struct tablestruct
     int level;          /* 所处层，仅const不使用 */
     int adr;            /* 地址，仅const不使用 */
     int size;           /* 需要分配的数据区空间, 仅procedure使用 */
+    int data; //数组下界
 };
 
 struct tablestruct nameTable[nameTableCapacity]; /* 名字表 */
@@ -109,6 +113,8 @@ int err; /* 错误计数器 */
 #define statementdo(a, b, c)          if(-1 == statement(a, b, c)) return -1
 #define constdeclarationdo(a, b, c)   if(-1 == constdeclaration(a, b, c)) return -1
 #define vardeclarationdo(a, b, c)     if(-1 == vardeclaration(a, b, c)) return -1
+#define arraydeclarationdo(a, b, c)   if(-1 == arraydeclaration(a, b, c)) return -1
+#define arraycoefdo(a, b, c)          if(-1 == arraycoef(a, b, c)) return -1
 
 void error(int n);
 int getsym();
@@ -133,3 +139,5 @@ int constdeclaration(int* nameTableTailPointer, int lev, int* nameRelativeAddres
 int position(char* idt, int tx);
 void enter(enum object k, int* ptx, int lev, int* pdx);
 int base(int l, int* s, int b);
+int arraydeclaration(int* ptx, int lev, int* pdx);
+int arraycoef(bool *fsys,int *ptx,int lev); //下标计算

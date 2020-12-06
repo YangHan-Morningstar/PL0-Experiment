@@ -886,14 +886,21 @@ int statement(bool* fsys, int* ptx, int lev)
                     {
                         error(35);  /* read()中应是声明过的变量名 */
                     }
-                    else if (nameTable[i].kind != variable)
+                    else if (nameTable[i].kind != variable && nameTable[i].kind != arrays)
                     {
                         error(32);	/* read()参数表的标识符不是变量, thanks to amd */
                     }
                     else
                     {
+                        enum fct fct1;
+                        if(nameTable[i].kind == arrays) {
+                            arraycoefdo(fsys, ptx, lev);
+                            fct1 = sta;
+                        } else {
+                            fct1 = sto;
+                        }
                         gendo(opr, 0, 16);  /* 生成输入指令，读取值到栈顶 */
-                        gendo(sto, lev - nameTable[i].level, nameTable[i].adr);   /* 储存到变量 */
+                        gendo(fct1, lev - nameTable[i].level, nameTable[i].adr);   /* 储存到变量 */
                     }
                     getsymdo;
 

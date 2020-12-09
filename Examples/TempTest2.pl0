@@ -2,6 +2,9 @@ const b=10;
 var a(1:b);
 procedure p;
 begin
+{111
+
+}
     read(a(2 -1));
           a(2):=2;
           a(1):=a(1)*3;

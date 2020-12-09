@@ -425,6 +425,7 @@ int getsym()
                                 getchdo;
                             }
                             getchdo;
+                            getsymdo;
                         } else {
                             sym = ssym[ch];     /* 当符号不满足上述条件时，全部按照单字符符号处理 */
                             //getchdo;
@@ -854,7 +855,8 @@ int statement(bool* fsys, int* ptx, int lev)
                 expressiondo(nxtlev, ptx, lev); /* 处理赋值符号右侧表达式 */
                 if(i != 0)
                 {
-                    /* expression将执行一系列指令，但最终结果将会保存在栈顶，执行sto命令完成赋值 */
+                    // 对于变量，expression将执行一系列指令，但最终结果将会保存在栈顶，执行sto命令完成赋值
+                    // 对于数组，同上
                     gendo(fct1, lev - nameTable[i].level, nameTable[i].adr);
                 }
             }
@@ -894,13 +896,13 @@ int statement(bool* fsys, int* ptx, int lev)
                     {
                         enum fct fct1;
                         if(nameTable[i].kind == arrays) {
-                            arraycoefdo(fsys, ptx, lev);
+                            arraycoefdo(fsys, ptx, lev); //执行完此处指令序列后，栈顶值为数组空间的偏移地址
                             fct1 = sta;
                         } else {
                             fct1 = sto;
                         }
-                        gendo(opr, 0, 16);  /* 生成输入指令，读取值到栈顶 */
-                        gendo(fct1, lev - nameTable[i].level, nameTable[i].adr);   /* 储存到变量 */
+                        gendo(opr, 0, 16);  // 生成输入指令，读取值到栈顶
+                        gendo(fct1, lev - nameTable[i].level, nameTable[i].adr); //此时栈顶值为输入数值，次栈顶为数组空间的偏移地址，栈顶值存入（数组基址（即数组在字母表中存储的adr）+偏移地址）
                     }
                     getsymdo;
 
@@ -1188,14 +1190,14 @@ int factor(bool* fsys, int* ptx, int lev)
                         gendo(lit, 0, nameTable[i].val);    /* 直接把常量的值入栈 */
                         break;
                     case variable:  /* 名字为变量 */
-                        gendo(lod, lev - nameTable[i].level, nameTable[i].adr);   /* 找到变量地址并将其值入栈 */
+                        gendo(lod, lev - nameTable[i].level, nameTable[i].adr);   // 将变量地址中的值存入栈顶
                         break;
                     case procedur:  /* 名字为过程 */
                         error(21);  /* 不能为过程 */
                         break;
                     case arrays:
                         arraycoefdo(fsys,ptx,lev);
-                        gendo(lda,lev - nameTable[i].level,nameTable[i].adr);
+                        gendo(lda,lev - nameTable[i].level,nameTable[i].adr);// 将数组偏移地址中的值存入栈顶
                         break;
                 }
             }
@@ -1344,7 +1346,7 @@ int arraydeclaration(int* ptx, int lev, int* pdx)
                 arrTop = num;
             }
         }
-        if(arrTop == -1) {
+        if(arrTop == -1) { //数组上界不是数字或者常量
             error(50);
             return -1;
         }
@@ -1373,7 +1375,7 @@ int arraydeclaration(int* ptx, int lev, int* pdx)
     return 0;
 }
 
-// 计算下标
+// 计算偏移地址
 int arraycoef(bool *fsys, int *ptx, int lev)
 {
     bool nxtlev[symnum];
@@ -1384,9 +1386,9 @@ int arraycoef(bool *fsys, int *ptx, int lev)
         memcpy(nxtlev, fsys, sizeof(bool)*symnum);
         nxtlev[rparen] = true;
         expressiondo(nxtlev, ptx, lev);
-        if (sym == rparen) {
-            gendo(lit, 0, nameTable[i].data);
-            gendo(opr, 0, 3);   /* 系数修正,减去下界的值 */
+        if (sym == rparen) { //成功处理完数组中的表达式（此时执行玩指令后值在栈顶，其即要访问的数组下标）
+            gendo(lit, 0, nameTable[i].data);//数组下界放在栈顶，此时数组下标在次栈顶
+            gendo(opr, 0, 3); //数组下标减去数组下界，结果放在新栈顶，得到数组地址空间的偏移地址
             return 0;
         } else {
             error(22);  /* 缺少右括号 */

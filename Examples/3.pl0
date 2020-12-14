@@ -1,0 +1,13 @@
+var x,y;
+begin
+    read(x);
+    if x < 1 then
+        y := x
+    else
+        if x < 10 then
+            y := 2 * x - 1
+        else
+            y := 3 * x - 11
+    ;
+    write(y)
+end.

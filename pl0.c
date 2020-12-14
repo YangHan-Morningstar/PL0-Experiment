@@ -30,8 +30,8 @@ int main()
     // printf("Input pl/0 file?   ");
     // scanf("%s", fname);     /* 输入文件名 */
 
-    fin = fopen("C:\\Users\\Tony\\CLionProjects\\CompilationPrinciple\\Examples\\TempTest2.pl0", "r");
-    // fin = fopen("/Users/tony/实验室/ClionProjects/PL0-Experiment/Examples/function.pl0", "r");
+    //fin = fopen("C:\\Users\\Tony\\CLionProjects\\CompilationPrinciple\\Examples\\TempTest2.pl0", "r");
+    fin = fopen("/Users/tony/实验室/ClionProjects/PL0-Experiment/Examples/3.pl0", "r");
 
     if (fin)
     {
@@ -998,25 +998,21 @@ int statement(bool* fsys, int* ptx, int lev)
                         gendo(jpc, 0, 0);   /* 生成条件跳转指令，跳转地址未知，暂时写0 */
                         statementdo(fsys, ptx, lev);    /* 处理then后的语句 */
 
-                        if(sym == semicolon) {
+                        if(sym == elsesym) {
                             getsymdo;
-                            if(sym == elsesym) {
-                                getsymdo;
-                                virtualMachineCodePointer2 = virtualMachineCodePointer;
-                                /*cx为当前的指令地址，cx+1即为then语句执行后的else语句的位置，回填地址*/
-                                virtualCode[virtualMachineCodePointer1].a = virtualMachineCodePointer + 1;
-                                gendo(jmp, 0, 0);
-                                statementdo(fsys, ptx, lev);
-                                /*经statement处理后，cx为else后语句执行
-                                完的位置，它正是前面未定的跳转地址，回填地址*/
-                                virtualCode[virtualMachineCodePointer2].a = virtualMachineCodePointer;
-                            } else {
-                                /*经statement处理后，cx为then后语句执行完的位置，它正是前面未定的跳转地址*/
-                                virtualCode[virtualMachineCodePointer1].a = virtualMachineCodePointer;
-                            }
+                            virtualMachineCodePointer2 = virtualMachineCodePointer;
+                            /*cx为当前的指令地址，cx+1即为then语句执行后的else语句的位置，回填地址*/
+                            virtualCode[virtualMachineCodePointer1].a = virtualMachineCodePointer + 1;
+                            gendo(jmp, 0, 0);
+                            statementdo(fsys, ptx, lev);
+                            /*经statement处理后，cx为else后语句执行
+                            完的位置，它正是前面未定的跳转地址，回填地址*/
+                            virtualCode[virtualMachineCodePointer2].a = virtualMachineCodePointer;
                         } else {
-                            error(5);
+                            /*经statement处理后，cx为then后语句执行完的位置，它正是前面未定的跳转地址*/
+                            virtualCode[virtualMachineCodePointer1].a = virtualMachineCodePointer;
                         }
+
                     }
                     else
                     {

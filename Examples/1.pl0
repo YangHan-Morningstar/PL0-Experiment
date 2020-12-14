@@ -1,0 +1,31 @@
+const a = 10;
+var b,c;
+procedure p1;
+    procedure p2;
+        procedure p3;
+            procedure p4;
+                begin
+                    c:=c*2;
+                    write(c);
+                end;
+            begin
+                c:=c*2;
+                call p4;
+            end;
+        begin
+            c:=c*2;
+            call p3;
+        end;
+    begin
+        c:=b+a;
+        call p2;
+    end;
+begin
+    read(b);
+    while b#0 do
+    begin
+        call p1;
+        write(c);
+        read(b);
+    end
+end.

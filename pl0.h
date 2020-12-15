@@ -55,6 +55,7 @@ struct instruction
     enum fct f; /* 虚拟机代码指令 */
     int l;      /* 引用层与声明层的层次差 */
     int a;      /* 根据f的不同而不同 */
+    int b;
 };
 
 FILE* fas;  /* 输出名字表 */
@@ -105,7 +106,7 @@ int err; /* 错误计数器 */
 #define getsymdo                      if(-1 == getsym()) return -1
 #define getchdo                       if(-1 == getch()) return -1
 #define testdo(a, b, c)               if(-1 == test(a, b, c)) return -1
-#define gendo(a, b, c)                if(-1 == gen(a, b, c)) return -1
+#define gendo(a, b, c, d)             if(-1 == gen(a, b, c, d)) return -1
 #define expressiondo(a, b, c)         if(-1 == expression(a, b, c)) return -1
 #define factordo(a, b, c)             if(-1 == factor(a, b, c)) return -1
 #define termdo(a, b, c)               if(-1 == term(a, b, c)) return -1
@@ -120,7 +121,7 @@ void error(int n);
 int getsym();
 int getch();
 void init();
-int gen(enum fct x, int y, int z);
+int gen(enum fct x, int y, int z, int b);
 int test(bool* s1, bool* s2, int n);
 int inset(int e, bool* s);
 int addset(bool* sr, bool* s1, bool* s2, int n);

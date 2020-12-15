@@ -31,7 +31,7 @@ int main()
     // scanf("%s", fname);     /* 输入文件名 */
 
     //fin = fopen("C:\\Users\\Tony\\CLionProjects\\CompilationPrinciple\\Examples\\TempTest2.pl0", "r");
-    fin = fopen("/Users/tony/实验室/ClionProjects/PL0-Experiment/Examples/3.pl0", "r");
+    fin = fopen("/Users/tony/实验室/ClionProjects/PL0-Experiment/Examples/2.pl0", "r");
 
     if (fin)
     {
@@ -451,7 +451,7 @@ int getsym()
 * y: instruction.l;
 * z: instruction.a;
 */
-int gen(enum fct x, int y, int z )
+int gen(enum fct x, int y, int z, int b)
 {
     if (virtualMachineCodePointer >= maxVirtualMachineCodeNum)
     {
@@ -461,6 +461,7 @@ int gen(enum fct x, int y, int z )
     virtualCode[virtualMachineCodePointer].f = x;
     virtualCode[virtualMachineCodePointer].l = y;
     virtualCode[virtualMachineCodePointer].a = z;
+    virtualCode[virtualMachineCodePointer].b = b;
     virtualMachineCodePointer++;
     return 0;
 }
@@ -514,7 +515,7 @@ int block(int eachProgramLevel, int nameTableTailPointer, bool* fsys)// 分程�
     nameTableTailPointer0 = nameTableTailPointer;               /* 记录本层名字的初始位置 */
     nameTable[nameTableTailPointer].adr = virtualMachineCodePointer;
 
-    gendo(jmp, 0, 0);
+    gendo(jmp, 0, 0, 0);
 
     if (eachProgramLevel > maxNestLevelNum)
     {
@@ -619,7 +620,7 @@ int block(int eachProgramLevel, int nameTableTailPointer, bool* fsys)// 分程�
     nameTable[nameTableTailPointer0].adr = virtualMachineCodePointer;            /* 当前过程代码地址 */
     nameTable[nameTableTailPointer0].size = nameRelativeAddress;           /* 声明部分中每增加一条声明都会给dx增加1，声明部分已经结束，dx就是当前过程数据的size */
     virtualMachineCodePointer0 = virtualMachineCodePointer;
-    gendo(inte, 0, nameRelativeAddress);             /* 生成分配内存代码 */
+    gendo(inte, 0, nameRelativeAddress, 0);             /* 生成分配内存代码 */
 
     if (tableswitch)        /* 输出名字表 */
     {
@@ -665,7 +666,7 @@ int block(int eachProgramLevel, int nameTableTailPointer, bool* fsys)// 分程�
     nxtlev[semicolon] = true;
     nxtlev[endsym] = true;
     statementdo(nxtlev, &nameTableTailPointer, eachProgramLevel);
-    gendo(opr, 0, 0);                       /* 每个过程出口都要使用的释放数据段指令 */
+    gendo(opr, 0, 0, 0);                       /* 每个过程出口都要使用的释放数据段指令 */
     memset(nxtlev, 0, sizeof(bool)*symnum); /*分程序没有补救集合 */
     testdo(fsys, nxtlev, 8);                /* 检测后跟符号正确性 */
     listcode(virtualMachineCodePointer0);                          /* 输出代码 */
@@ -835,9 +836,11 @@ int statement(bool* fsys, int* ptx, int lev)
             else
             {
                 enum fct fct1;
+                int temp_b = 0;
                 if(nameTable[i].kind == arrays) {
                     arraycoefdo(fsys, ptx, lev);
                     fct1 = sta;  /* 数组保存,要多读一个栈*/
+                    temp_b = nameTable[i].size;
                 } else {
                     fct1 = sto;
                 }
@@ -857,7 +860,7 @@ int statement(bool* fsys, int* ptx, int lev)
                 {
                     // 对于变量，expression将执行一系列指令，但最终结果将会保存在栈顶，执行sto命令完成赋值
                     // 对于数组，同上
-                    gendo(fct1, lev - nameTable[i].level, nameTable[i].adr);
+                    gendo(fct1, lev - nameTable[i].level, nameTable[i].adr, temp_b);
                 }
             }
         }//if (i == 0)
@@ -895,14 +898,16 @@ int statement(bool* fsys, int* ptx, int lev)
                     else
                     {
                         enum fct fct1;
+                        int temp_b = 0;
                         if(nameTable[i].kind == arrays) {
                             arraycoefdo(fsys, ptx, lev); //执行完此处指令序列后，栈顶值为数组空间的偏移地址
                             fct1 = sta;
+                            temp_b = nameTable[i].size;
                         } else {
                             fct1 = sto;
                         }
-                        gendo(opr, 0, 16);  // 生成输入指令，读取值到栈顶
-                        gendo(fct1, lev - nameTable[i].level, nameTable[i].adr); //此时栈顶值为输入数值，次栈顶为数组空间的偏移地址，栈顶值存入（数组基址（即数组在字母表中存储的adr）+偏移地址）
+                        gendo(opr, 0, 16, 0);  // 生成输入指令，读取值到栈顶
+                        gendo(fct1, lev - nameTable[i].level, nameTable[i].adr, temp_b); //此时栈顶值为输入数值，次栈顶为数组空间的偏移地址，栈顶值存入（数组基址（即数组在字母表中存储的adr）+偏移地址）
                     }
                     getsymdo;
 
@@ -934,7 +939,7 @@ int statement(bool* fsys, int* ptx, int lev)
                         nxtlev[rparen] = true;
                         nxtlev[comma] = true;       /* write的后跟符号为) or , */
                         expressiondo(nxtlev, ptx, lev); /* 调用表达式处理，此处与read不同，read为给变量赋值 */
-                        gendo(opr, 0, 14);  /* 生成输出指令，输出栈顶的值 */
+                        gendo(opr, 0, 14, 0);  /* 生成输出指令，输出栈顶的值 */
                     } while (sym == comma);
                     if (sym != rparen)
                     {
@@ -945,7 +950,7 @@ int statement(bool* fsys, int* ptx, int lev)
                         getsymdo;
                     }
                 }
-                gendo(opr, 0, 15);  /* 输出换行 */
+                gendo(opr, 0, 15, 0);  /* 输出换行 */
             }
             else
             {
@@ -967,7 +972,7 @@ int statement(bool* fsys, int* ptx, int lev)
                         {
                             if (nameTable[i].kind == procedur)
                             {
-                                gendo(cal, lev - nameTable[i].level, nameTable[i].adr);   /* 生成call指令 */
+                                gendo(cal, lev - nameTable[i].level, nameTable[i].adr, 0);   /* 生成call指令 */
                             }
                             else
                             {
@@ -995,7 +1000,7 @@ int statement(bool* fsys, int* ptx, int lev)
                             error(16);  /* 缺少then */
                         }
                         virtualMachineCodePointer1 = virtualMachineCodePointer;   /* 保存当前指令地址 */
-                        gendo(jpc, 0, 0);   /* 生成条件跳转指令，跳转地址未知，暂时写0 */
+                        gendo(jpc, 0, 0, 0);   /* 生成条件跳转指令，跳转地址未知，暂时写0 */
                         statementdo(fsys, ptx, lev);    /* 处理then后的语句 */
 
                         if(sym == elsesym) {
@@ -1003,7 +1008,7 @@ int statement(bool* fsys, int* ptx, int lev)
                             virtualMachineCodePointer2 = virtualMachineCodePointer;
                             /*cx为当前的指令地址，cx+1即为then语句执行后的else语句的位置，回填地址*/
                             virtualCode[virtualMachineCodePointer1].a = virtualMachineCodePointer + 1;
-                            gendo(jmp, 0, 0);
+                            gendo(jmp, 0, 0, 0);
                             statementdo(fsys, ptx, lev);
                             /*经statement处理后，cx为else后语句执行
                             完的位置，它正是前面未定的跳转地址，回填地址*/
@@ -1056,7 +1061,7 @@ int statement(bool* fsys, int* ptx, int lev)
                                 nxtlev[dosym] = true;   /* 后跟符号为do */
                                 conditiondo(nxtlev, ptx, lev);  /* 调用条件处理 */
                                 virtualMachineCodePointer2 = virtualMachineCodePointer;   /* 保存循环体的结束的下一个位置 */
-                                gendo(jpc, 0, 0);   /* 生成条件跳转，但跳出循环的地址未知 */
+                                gendo(jpc, 0, 0, 0);   /* 生成条件跳转，但跳出循环的地址未知 */
                                 if (sym == dosym)
                                 {
                                     getsymdo;
@@ -1066,7 +1071,7 @@ int statement(bool* fsys, int* ptx, int lev)
                                     error(18);  /* 缺少do */
                                 }
                                 statementdo(fsys, ptx, lev);    /* 循环体 */
-                                gendo(jmp, 0, virtualMachineCodePointer1); /* 回头重新判断条件 */
+                                gendo(jmp, 0, virtualMachineCodePointer1, 0); /* 回头重新判断条件 */
                                 virtualCode[virtualMachineCodePointer2].a = virtualMachineCodePointer;   /* 反填跳出循环的地址，与if类似 */
                             }
                             else
@@ -1101,7 +1106,7 @@ int expression(bool* fsys, int* ptx, int lev)
         termdo(nxtlev, ptx, lev);   /* 处理项 */
         if (addop == minus)
         {
-            gendo(opr,0,1); /* 如果开头为负号生成取负指令 */
+            gendo(opr, 0, 1, 0); /* 如果开头为负号生成取负指令 */
         }
     }
     else    /* 此时表达式被看作项的加减 */
@@ -1121,11 +1126,11 @@ int expression(bool* fsys, int* ptx, int lev)
         termdo(nxtlev, ptx, lev);   /* 处理项 */
         if (addop == plus)
         {
-            gendo(opr, 0, 2);   /* 生成加法指令 */
+            gendo(opr, 0, 2, 0);   /* 生成加法指令 */
         }
         else
         {
-            gendo(opr, 0, 3);   /* 生成减法指令 */
+            gendo(opr, 0, 3, 0);   /* 生成减法指令 */
         }
     }
     return 0;
@@ -1150,11 +1155,11 @@ int term(bool* fsys, int* ptx, int lev)
         factordo(nxtlev, ptx, lev);
         if(mulop == times)
         {
-            gendo(opr, 0, 4);   /* 生成乘法指令 */
+            gendo(opr, 0, 4, 0);   /* 生成乘法指令 */
         }
         else
         {
-            gendo(opr, 0, 5);   /* 生成除法指令 */
+            gendo(opr, 0, 5, 0);   /* 生成除法指令 */
         }
     }
     return 0;
@@ -1183,17 +1188,17 @@ int factor(bool* fsys, int* ptx, int lev)
                 switch (nameTable[i].kind)
                 {
                     case constant:  /* 名字为常量 */
-                        gendo(lit, 0, nameTable[i].val);    /* 直接把常量的值入栈 */
+                        gendo(lit, 0, nameTable[i].val, 0);    /* 直接把常量的值入栈 */
                         break;
                     case variable:  /* 名字为变量 */
-                        gendo(lod, lev - nameTable[i].level, nameTable[i].adr);   // 将变量地址中的值存入栈顶
+                        gendo(lod, lev - nameTable[i].level, nameTable[i].adr, 0);   // 将变量地址中的值存入栈顶
                         break;
                     case procedur:  /* 名字为过程 */
                         error(21);  /* 不能为过程 */
                         break;
                     case arrays:
                         arraycoefdo(fsys,ptx,lev);
-                        gendo(lda,lev - nameTable[i].level,nameTable[i].adr);// 将数组偏移地址中的值存入栈顶
+                        gendo(lda,lev - nameTable[i].level,nameTable[i].adr, nameTable[i].size);// 将数组偏移地址中的值存入栈顶
                         break;
                 }
             }
@@ -1208,7 +1213,7 @@ int factor(bool* fsys, int* ptx, int lev)
                     error(31);
                     num = 0;
                 }
-                gendo(lit, 0, num);
+                gendo(lit, 0, num, 0);
                 getsymdo;
             }
             else
@@ -1247,7 +1252,7 @@ int condition(bool* fsys, int* ptx, int lev)
     {
         getsymdo;
         expressiondo(fsys, ptx, lev);
-        gendo(opr, 0, 6);   /* 生成odd指令 */
+        gendo(opr, 0, 6, 0);   /* 生成odd指令 */
     }
     else
     {
@@ -1272,22 +1277,22 @@ int condition(bool* fsys, int* ptx, int lev)
             switch (relop)
             {
                 case eql:
-                    gendo(opr, 0, 8);
+                    gendo(opr, 0, 8, 0);
                     break;
                 case neq:
-                    gendo(opr, 0, 9);
+                    gendo(opr, 0, 9, 0);
                     break;
                 case lss:
-                    gendo(opr, 0, 10);
+                    gendo(opr, 0, 10, 0);
                     break;
                 case geq:
-                    gendo(opr, 0, 11);
+                    gendo(opr, 0, 11, 0);
                     break;
                 case gtr:
-                    gendo(opr, 0, 12);
+                    gendo(opr, 0, 12, 0);
                     break;
                 case leq:
-                    gendo(opr, 0, 13);
+                    gendo(opr, 0, 13, 0);
                     break;
             }
         }
@@ -1383,8 +1388,8 @@ int arraycoef(bool *fsys, int *ptx, int lev)
         nxtlev[rparen] = true;
         expressiondo(nxtlev, ptx, lev);
         if (sym == rparen) { //成功处理完数组中的表达式（此时执行玩指令后值在栈顶，其即要访问的数组下标）
-            gendo(lit, 0, nameTable[i].data);//数组下界放在栈顶，此时数组下标在次栈顶
-            gendo(opr, 0, 3); //数组下标减去数组下界，结果放在新栈顶，得到数组地址空间的偏移地址
+            gendo(lit, 0, nameTable[i].data, 0);//数组下界放在栈顶，此时数组下标在次栈顶
+            gendo(opr, 0, 3, 0); //数组下标减去数组下界，结果放在新栈顶，得到数组地址空间的偏移地址
             return 0;
         } else {
             error(22);  /* 缺少右括号 */
@@ -1403,6 +1408,7 @@ void interpret()
     int p, b, t;    /* 指令指针，指令基址，栈顶指针 */
     struct instruction i;   /* 存放当前指令 */
     int s[stacksize];   /* 栈 */
+    bool j = 0;
 
     printf("start pl0\n");
     t = 0;
@@ -1500,11 +1506,19 @@ void interpret()
                 break;
 
             case lda: /* 数组元素访问,当前栈顶为元素索引,执行后,栈顶变成元素的值*/
-                s[t-1] = s[base(i.l, s, b) + i.a + s[t-1]];
+                if(s[t-1] < 0 || s[t-1] >= i.b) {
+                    j = 1;
+                } else {
+                    s[t-1] = s[base(i.l, s, b) + i.a + s[t-1]];
+                }
                 break;
             case sta: /* 栈顶的值存到数组中,索引为次栈顶*/
                 t -= 2;
-                s[base(i.l, s, b) + i.a + s[t]] = s[t+1];
+                if(s[t] < 0 || s[t] >= i.b) {
+                    j = 1;
+                } else {
+                    s[base(i.l, s, b) + i.a + s[t]] = s[t + 1];
+                }
                 break;
 
             case cal:   /* 调用子过程 */
@@ -1527,6 +1541,10 @@ void interpret()
                     p = i.a;
                 }
                 break;
+        }
+        if(j) {
+            printf("Array out of bounds error!");
+            break;
         }
     } while (p != 0);
 }
